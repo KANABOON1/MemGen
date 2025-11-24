@@ -1,0 +1,172 @@
+model: 
+  # base llm
+  model_name: Qwen/Qwen2.5-1.5B-Instruct
+  load_model_path: null
+  
+  # max prompt/inference augmentation num
+  max_prompt_aug_num: 1  # single turn
+  max_inference_aug_num: 5
+
+  # weaver configs
+  weaver:
+    model_name: Qwen/Qwen2.5-1.5B-Instruct
+    prompt_latents_len: 8
+    inference_latents_len: 8
+    
+    lora_config:
+      r: 16
+      lora_alpha: 32
+      target_modules: ["q_proj", "v_proj"]
+      lora_dropout: 0.1
+      bias: "none"
+      task_type: "CAUSAL_LM"
+
+  # trigger configs
+  trigger:
+    model_name: Qwen/Qwen2.5-1.5B-Instruct
+    active: False
+   
+    lora_config:
+      r: 16
+      lora_alpha: 32
+      target_modules: ["q_proj", "v_proj"]
+      lora_dropout: 0.1
+      bias: "none"
+      task_type: "CAUSAL_LM"
+      
+# dataset configs
+dataset: 
+  name: gsm8k
+  mode: sft  # options: ["sft", "grpo"], should manually keep align with the training method in `run` configs
+  sft:
+    val_ratio: 0.1
+  grpo: 
+    val_ratio: 0.1
+
+# training/evaluation configs
+run: 
+
+  seed: 42
+  
+  # route
+  mode: train
+  train_weaver: True
+  train_weaver_method: sft    # sft or grpo
+  train_trigger: False
+  train_trigger_method: grpo  # grpo only
+
+  # processor training configs
+  weaver:
+    
+    # sft configs
+    sft:
+      # epochs and batchsize
+      num_train_epochs: 2
+      per_device_train_batch_size: 4
+      per_device_eval_batch_size: 4
+      gradient_accumulation_steps: 1
+      
+      # optimizer configs
+      optim: adamw_torch
+      lr_scheduler_type: cosine
+      warmup_ratio: 0.1
+      learning_rate: 1e-5
+      
+      # duration
+      logging_strategy: steps
+      logging_steps: 1
+      eval_strategy: epoch
+      eval_steps: 100
+      save_strategy: epoch
+      save_steps: 100
+ 
+      assistant_only_loss: False   # used only in conversational dataset
+      max_length: 1024  # max sequence length
+      remove_unused_columns: False
+      load_best_model_at_end: True
+      bf16: True
+      report_to:  
+        - tensorboard
+      
+    # grpo configs
+    grpo:
+      num_train_epochs: 1
+      per_device_train_batch_size: 8
+      per_device_eval_batch_size: 8
+      num_generations: 8   
+      num_iterations: 1
+      gradient_accumulation_steps: 1
+      beta: 0.0
+      loss_type: grpo
+
+      max_prompt_length: 1024
+      max_completion_length: 512
+      temperature: 1.0
+      
+      # optimizer configs
+      optim: adamw_torch
+      lr_scheduler_type: cosine
+      warmup_ratio: 0.1
+      learning_rate: 1e-5
+      
+      # duration
+      logging_strategy: steps
+      logging_steps: 1
+      eval_strategy: epoch
+      eval_steps: 100
+      save_strategy: epoch
+      save_steps: 100
+
+      remove_unused_columns: False
+      load_best_model_at_end: True
+      bf16: True
+      report_to:  
+        - tensorboard
+
+  # trigger training configs
+  trigger:
+
+    grpo:
+      num_train_epochs: 1
+      per_device_train_batch_size: 8
+      per_device_eval_batch_size: 8
+      num_generations: 8
+      num_iterations: 1
+      gradient_accumulation_steps: 1
+      beta: 0.0
+      loss_type: bnpo
+
+      max_prompt_length: 1024
+      max_completion_length: 512
+      temperature: 1.0
+
+      # optimizer configs
+      optim: adamw_torch
+      learning_rate: 1e-5
+      lr_scheduler_type: cosine
+      warmup_ratio: 0.1
+      
+      # duration
+      logging_strategy: steps
+      logging_steps: 1
+      eval_strategy: epoch
+      eval_steps: 100
+      save_strategy: epoch
+      save_steps: 100
+
+      remove_unused_columns: False
+      load_best_model_at_end: True
+      bf16: True
+      report_to:  
+        - tensorboard
+  
+  # interaction config for evaluation
+  interaction:
+    max_turns: 1
+    max_start_length: 1024     # Maximum length of the initial prompt.
+    max_prompt_length: 4096    # Maximum prompt length during multi-turn interactions (includes all conversation history across turns).
+    max_response_length: 1024
+    max_obs_length: 512
+    do_sample: False
+    temperature: 1.0
+    batch_size: 8
