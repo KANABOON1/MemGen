@@ -13,12 +13,18 @@ Unlike traditional approaches, MemGen generates latent memory tokens directly wi
 
 ## 🌎 Setup
 
-Create and activate the MemGen environment:
-
+Create and activate the MemGen environment:  
+Option 1: Install via `requirements.txt`
 ```
 conda create -n memgen python=3.10
 conda activate memgen
 pip install -r requirements.txt
+```
+
+Option 2: Install via `memgen.yml`
+```
+conda env create -f memgen.yml
+conda activate memgen
 ```
 
 ## 🚀 Quick Start
